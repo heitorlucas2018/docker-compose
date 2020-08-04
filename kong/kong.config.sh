@@ -17,16 +17,23 @@ addAuthToEndpoint() {
 # $1 = Service Name
 echo ""
 echo ""
-echo "- addAuthToEndpoint: ServiceName=${1}"
-curl  -sS  -X POST \
---url ${kong}/services/"${1}"/plugins/ \
---data "name=pepkong" \
---data "config.pdpUrl=http://auth:5000/pdp"
+echo "- addAuthToEndpoint: ServiceName=${1}, RoleRequiredToAccess=${2}"
 
-curl  -sS  -X POST \
---url ${kong}/services/"${1}"/plugins/ \
---data "name=jwt"
+if [ "$2" != "" ]; then
+  curl -X POST ${kong}/services/"${1}"/plugins \
+    --data "name=jwt-keycloak" \
+    --data "config.allowed_iss=http://keycloak:8080/auth/realms/master" \
+    --data "config.client_roles=${1}:admin" \
+    --data "config.client_roles=${1}:${2}"
+else
+  curl -X POST ${kong}/services/"${1}"/plugins \
+    --data "name=jwt-keycloak" \
+    --data "config.allowed_iss=http://keycloak:8080/auth/realms/master" \
+    --data "config.client_roles=${1}:admin"
+fi
+
 }
+
 
 # add a Service
 # that is the name Kong uses to refer to the upstream APIs
@@ -84,10 +91,10 @@ createEndpoint "gui" "http://gui:80"  '"/"' "false"
 # service: data-broker
 
 createEndpoint  "data-broker" "http://data-broker:80"  '"/device/(.*)/latest", "/subscription"' "false"
-addAuthToEndpoint "data-broker"
+addAuthToEndpoint "data-broker" "user"
 
 createEndpoint "data-streams" "http://data-broker:80"  '"/stream"' "true"
-addAuthToEndpoint "data-streams"
+addAuthToEndpoint "data-streams" "user"
 
 createEndpoint "ws-http" "http://data-broker:80"  '"/socket.io"' "false"
 
@@ -99,14 +106,11 @@ addAuthToEndpoint "device-manager"
 # service: image-manager
 
 createEndpoint "image" "http://image-manager:5000"  '"/fw-image"' "true"
-addAuthToEndpoint "image"
+addAuthToEndpoint "image" "user"
 
 # service: auth
 
-createEndpoint "auth-permissions-service" "http://auth:5000/pap"  '"/auth/pap"' "true"
-addAuthToEndpoint "auth-permissions-service"
-
-createEndpoint "auth-service" "http://auth:5000"  '"/auth"' "true"
+createEndpoint "auth-service" "http://keycloak:8080/auth"  '"/auth"' "true"
 echo ""
 echo ""
 echo "- add plugin rate-limiting in auth-service"
@@ -117,24 +121,10 @@ curl  -s  -sS -X POST \
 --data "config.hour=40" \
 --data "config.policy=local"
 
-createEndpoint "auth-revoke" "http://auth:5000"  '"/auth/revoke"' "false"
-# rate plugin limit to avoid brute-force atacks
-echo ""
-echo ""
-echo "- add plugin request-termination in auth-revoke"
-curl  -s  -sS -X POST \
---url ${kong}/services/auth-revoke/plugins/ \
-    --data "name=request-termination" \
-    --data "config.status_code=403" \
-    --data "config.message=Not authorized"
-
-createEndpoint "user-service" "http://auth:5000/user"  '"/auth/user"' "true"
-addAuthToEndpoint "user-service"
-
 # service: flowbroker
 
 createEndpoint "flows" "http://flowbroker:80"  '"/flows"' "true"
-addAuthToEndpoint "flows"
+addAuthToEndpoint "flows" "user"
 
 createEndpoint "flowsIcons" "http://flowbroker:80/icons"  '"/flows/icons"' "true"
 
@@ -143,17 +133,17 @@ createEndpoint "flowsRedImages" "http://flowbroker:80/red/images"  '"/flows/red/
 # service: history
 
 createEndpoint "history" "http://history:8000"  '"/history"' "true"
-addAuthToEndpoint "history"
+addAuthToEndpoint "history" "user"
 
 # service: ejbca
 
 createEndpoint "ejbca-paths" "http://ejbca:5583/"  '"/sign", "/ca", "/user"' "false"
-addAuthToEndpoint "ejbca-paths"
+addAuthToEndpoint "ejbca-paths" "user"
 
 # service: data-manager
 
 createEndpoint "data-manager" "http://data-manager:3000/"  '"/export", "/import"' "false"
-addAuthToEndpoint "data-manager"
+addAuthToEndpoint "data-manager" "user"
 
 # service: backstage
 
@@ -162,5 +152,5 @@ createEndpoint "backstage_graphql" "http://backstage:3005/"  '"/graphql(.*)"' "f
 # service: cron
 
 createEndpoint "cron" "http://cron:5000/"  '"/cron"' "false"
-addAuthToEndpoint "cron"
+addAuthToEndpoint "cron" "user"
 
