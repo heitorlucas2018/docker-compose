@@ -65,13 +65,15 @@ services:
     restart: on-failure
     environment:
       KEYCLOAK_MASTER_USER: master #${KEYCLOAK_MASTER_USER:-master}
-      KEYCLOAK_MASTER_PASSWORD: admin #${KEYCLOAK_MASTER_PASSWORD}
+      KEYCLOAK_MASTER_PASSWORD: master #${KEYCLOAK_MASTER_PASSWORD}
       KEYCLOAK_CREATE_REALM: realmDemo #${KEYCLOAK_DEFAULT_REALM:-admin}
     depends_on:
       - keycloak
       - create_secrets
     volumes:
       - ./keycloak/keycloak.config.sh:/opt/keycloak.config.sh:Z
+      - ./keycloak:/keycloak
+      - ./secrets:/secrets
     logging:
       driver: json-file
       options:
