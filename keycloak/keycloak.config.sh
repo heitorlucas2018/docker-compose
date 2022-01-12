@@ -54,7 +54,7 @@ createRealm() {
 }
 
  createClient() {
-   echo "Creatting Client in realm master..."
+   echo "Creatting Client in realm master..." 
 
   curl -X POST "${KEYCLOAK_HOST}/admin/realms/master/clients" \
     -H "Content-Type:application/json" \
