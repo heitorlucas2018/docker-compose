@@ -22,6 +22,7 @@ services:
         - "./secrets/create_secrets.sh"
     restart: on-failure
     volumes:
+      - ./keycloak/customRealmRepresentation.json:/keycloak/customRealmRepresentation.json:Z
       - ./secrets:/secrets
   keycloak:
     build: ../dojot-with-keycloak/iam/keycloak
@@ -980,7 +981,7 @@ services:
     depends_on:
       - kafka
       - data-broker
-      - auth
+      #- auth
       - http-agent-cert-sidecar
       - device-manager
       - certificate-acl
@@ -1338,7 +1339,7 @@ services:
       - kafka
       - data-broker
       - mongodb
-      - auth
+      #- auth
       - device-manager
     ports:
       - 3000:3000
